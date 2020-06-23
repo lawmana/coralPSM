@@ -24,7 +24,7 @@ set(0,'DefaultFigureWindowStyle','docked')
 % GENERATE SAMPLE DATA
 %--------------------------------------
 % sampling resolution for the input data (points-per-cyle)
-ppcIn = 14;
+ppcIn = 12;
 
 % depth or sample number series with temporal uncertainty
 noiseX = 0.3;
