@@ -258,7 +258,7 @@ function [ts, criticalPts] = psAgeModel(y,varargin)
     
     
     % preallocate
-    intermediateX = zeros((length(criticalPts)-1)*ppcOut/2, 1);
+    intermediateX = zeros(ceil((length(criticalPts)-1)*ppcOut/2), 1);
     currentX = 1;
 
     % create x values that are spaced between critical points
