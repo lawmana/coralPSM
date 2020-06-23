@@ -1,11 +1,68 @@
-function [ts, criticalPts] = psAgeModel(y,varargin)
-%psAgeModel Periodic signal tuned age model.
-%   This function assumes that the largest signal in the given data is of
-%   constant frequency and is distorted in time. The data will be
-%   interpolated to even sampling in time by using the peaks and troughs of
-%   the periodic signal as reference.
+function [ts, criticalPts] = psAgeModel(y, varargin)
+%psAgeModel periodic signal tuned age model.
+%   This function interpolates data to even sampling in the time domain
+%   using peaks and troughs in the data as chronological tie points. This
+%   function assumes that the largest signal in the input data is of
+%   constant frequency, but that this signal is distorted in time.
+%
+%   An application of this algorithm is to convert coral geochemical data 
+%   from the depth to the time domain (coral age modeling) for paleoclimate 
+%   studies. For example, corals are often sampled at approximately
+%   monthly resolution, with the annual cycle emerging as a dominant signal 
+%   of constant frequency.
+%
+%   The age model algorithm identifies the local minima/maxima (critical 
+%   points) in the raw geochemical data (depth or sample number domain)
+%   and uses them as chronological tie points when interpolating the data 
+%   to the target temporal resolution (e.g., monthly = 12 points-per-year). 
+%   The critical points can be assigned a calendar month based on knowledge 
+%   of the climatology at the coral study site.
+%
+%% Syntax:
+%
+%   [ts, criticalPts] = psAgeModel(y)
+%   [ts, criticalPts] = psAgeModel(..., 'ppcIn', pIn, 'ppcOut', pOut)
+%   [ts, criticalPts] = psAgeModel(..., 'numPeriods', n)
+%   [ts, criticalPts] = psAgeModel(..., 'peakLoc', p, 'troughLoc', t)
+%
+%% Description:
+%
+% [ts, criticalPts] = psAgeModel(y) provides a periodic signal tuned relative 
+% age model, ts, based on the input data y. The output criticalPts provides 
+% the indices of the local minima and maxima in y that arise because of 
+% the dominant periodic signal. The output matrix ts contains data that is
+% evenly spaced in time (column 1 = time; column 2 = interpolated data). 
+%
+% [ts, criticalPts] = psAgeModel(..., 'ppcIn', pIn, 'ppcOut', pOut)
+% provides a constraint for the number of data points-per-cycle (ppc) in
+% the input data, pIn. By default pIn is calculated by computing a
+% periodogram for y and choosing the peak with the most power. By default 
+% pOut is set to equal pIn. For a dataset with a strong annual cycle, set
+% pOut = 12 to achieve monthly resolution. 
+%
+% [ts, criticalPts] = psAgeModel(..., 'numPeriods', n) provides a 
+% constraint for the estimated number of complete periods in y. This
+% argument is often unecessary for data with a clear periodic signal, but 
+% may be needed for noisy data.
+%
+% [ts, criticalPts] = psAgeModel(..., 'peakLoc', p, 'troughLoc', t).
+% provides the location (index) for the peak and trough in each period.
+% By default the age model will interpolate the data such that 
+% there is an equal number of data points between each peak and trough. For
+% monthly resolved coral data (ppcOut = 12) set peakLoc and peakTrough such
+% that they represent the calendar months that correspond to the 
+% climatological peaks and troughs (1 = January, 12 = December).
+%
+%% Examples:
+% For examples, run 'psAgeModelDemo.m' available at: 
+% https://github.com/lawmana/coralPSM/tree/master/Examples
+%
+%% Publication Info:
+% Lawman et al., (2020). Developing a coral proxy system model to compare
+% coral and climate model estimates of changes in paleo?ENSO variability,
+% Paleoceanography and Paleoclimatology, doi: 10.1029/2019PA003836.
 
-    %% parse input
+%% parse input
     p = inputParser;
 
     addRequired(p, 'y', @(x) isnumeric(x) && isvector(x));
@@ -343,6 +400,7 @@ function [ts, criticalPts] = psAgeModel(y,varargin)
     
 end
 
+%% additional helper functions
 function [loc,score] = chooseNextPeak(currentLoc,peakLocs,peakProm,ppc)
     i = peakLocs > currentLoc;
     peakLocs = peakLocs(i);
@@ -354,3 +412,29 @@ function [loc,score] = chooseNextPeak(currentLoc,peakLocs,peakProm,ppc)
     [score,loc] = max(value);
     loc = peakLocs(loc);
 end
+
+function [means] = periodicMean(data, interval)
+    % input data is a vector 
+    if ~isvector(data)
+        % error if the data is not a 1-D vector
+        error('input data must be a 1-D vector')
+    elseif isrow(data)
+        % transpose the data if the input is a row vector
+        data = data';
+    end
+
+    % input interval is an integer
+    if mod(interval,1) ~= 0
+        error('input must be an integer')
+    end
+
+    if length(data) < interval
+        error('length of input data must be longer than specified interval');
+    end
+
+    % compute means
+    means = zeros(interval,1);
+    for i = 1:interval
+        means(i) = mean(data(i:interval:end));
+    end
+end 
