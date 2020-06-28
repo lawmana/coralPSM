@@ -83,7 +83,7 @@ function [ts, criticalPts] = psAgeModel(y, varargin)
     %% Initialize input
     
     % remove NaNs
-    y = y(~isnan(y));
+    y = fillmissing(y,'linear');
     
     % set y to a column vector
     if isrow(y)
