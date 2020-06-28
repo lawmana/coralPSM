@@ -176,8 +176,8 @@ function [ts, criticalPts] = psAgeModel(y, varargin)
     
     % store initial input vector & apply low pass filter
     yInit = y;
-    y = lowpass(y, 2, ppcIn);
-       
+    y = lowpass([flip(y); y; flip(y)], 2, ppcIn);
+    y = y(length(y)/3+1:2*length(y)/3);
     
     %% Find peaks
     
