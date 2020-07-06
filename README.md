@@ -23,6 +23,9 @@ A coral’s growth rate may vary both within and between years. For example, a c
 
 The function **analytical_error.m** models analytical errors (e.g., laboratory analytical precision) as Gaussian white noise.
 
+#### Example File: https://github.com/lawmana/coralPSM/tree/master/Examples/AnalyticalError
+**analyticalErrorDemo.m** demonstrates how to perturb an input time series with Gaussian noise using sample coral Sr/Ca data.
+
 ### Coral Age Modeling
 *See section 2.5.2 in our paper for more details*
 
@@ -35,3 +38,17 @@ The age model algorithm identifies the local minima/maxima (critical points) in 
 #### Example Files: https://github.com/lawmana/coralPSM/tree/master/Examples/AgeModel
 1. **ageModelDemo.m** demonstrates how to use the function using generic sinusoidal data as the input
 2. **coralAgeModel_VanuatuFossilCoral_SrCa.m** generates a relative age model using sample coral Sr/Ca data from Vanuatu in the southwest Pacific
+
+## FAQ
+### Age Model
+**Can the input data contain NaNs or missing data?**
+
+*Yes. Any missing values in the input data should be represented as NaNs as opposed to another value (e.g., -999).*
+
+**Why is it recommended that I multiply coral Sr/Ca or oxygen isotope by -1 prior to using the age model algorithm?**
+
+*By convention the y-axis for coral Sr/Ca data is flipped so that Sr/Ca minima are graphically displayed as peaks and Sr/Ca maxima are displayed as troughs. The same is true for coral oxygen isotope data, in which more negative values are displayed graphically as peaks. Furthermore, it is also recommended that the user invert the input data if the local minima in the data are more prominent than the local maxima as this may yield a more accurate age model.* 
+
+**Where can I find which calendar months correspond to the annual peaks and troughs in coral geochemical data?**
+
+*The climatological inputs can come from instrumental observations, reanalysis data, or climate model output for the location near the coral site.*
