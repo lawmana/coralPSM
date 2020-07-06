@@ -23,8 +23,10 @@ A coral’s growth rate may vary both within and between years. For example, a c
 
 The function **analytical_error.m** models analytical errors (e.g., laboratory analytical precision) as Gaussian white noise.
 
-#### Example File: https://github.com/lawmana/coralPSM/tree/master/Examples/AnalyticalError
+#### Example File: [Here](https://github.com/lawmana/coralPSM/tree/master/Examples/AnalyticalError)
 **analyticalErrorDemo.m** demonstrates how to perturb an input time series with Gaussian noise using sample coral Sr/Ca data.
+
+![AnalyticalErrDemo](https://github.com/lawmana/coralPSM/blob/master/Examples/AnalyticalError/analyticalErr_VanuatuFosCoral_SrCa.png)
 
 ### Coral Age Modeling
 *See section 2.5.2 in our paper for more details*
@@ -35,9 +37,11 @@ An application of this algorithm is to convert coral geochemical data from the d
 
 The age model algorithm identifies the local minima/maxima (critical points) in the raw geochemical data (depth or sample number domain) and uses them as chronological tie points when interpolating the data to the target temporal resolution (e.g., monthly = 12 points-per-year). The local minima/maxima are assigned a calendar month based on knowledge of the climatology at the coral study site.
 
-#### Example Files: https://github.com/lawmana/coralPSM/tree/master/Examples/AgeModel
+#### Example Files: [Here](https://github.com/lawmana/coralPSM/tree/master/Examples/AgeModel)
 1. **ageModelDemo.m** demonstrates how to use the function using generic sinusoidal data as the input
 2. **coralAgeModel_VanuatuFossilCoral_SrCa.m** generates a relative age model using sample coral Sr/Ca data from Vanuatu in the southwest Pacific
+
+![AgeModelExample](https://github.com/lawmana/coralPSM/blob/master/Examples/AgeModel/coralAgeModel_VanuatuFossilCoral_SrCa.png)
 
 ## FAQ
 ### Age Model
