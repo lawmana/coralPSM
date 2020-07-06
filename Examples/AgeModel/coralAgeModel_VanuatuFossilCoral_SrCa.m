@@ -4,7 +4,29 @@
 % Author: A.E. Lawman, The University of Texas at Austin, 2020
 
 % Generate the relative age model for fossil coral 11-TM-S5 collected from
-% Tasmaloum, Vanuatu (15.6S, 166.9E).
+% Tasmaloum, Vanuatu (lat/lon: 15.6S, 166.9E).
+%--------------------------------------------------------------------------
+% AGE MODEL USER INPUTS:
+%   dataIn      : the input data with a cyclic signal of known frequency; 
+%                 here it is the raw coral Sr/Ca data in the depth domain
+%                 with the annual cycle emerging as the dominant cyclic
+%                 signal of known frequency. 
+%   ppcIn       : points-per-cycle for the input data (i.e., the sampling resolution);
+%                 here ppcIn represents the estimated # of coral samples per annual growth band
+%   ppcOut      : points-per-cycle for the age modeled output
+%                 set ppcOut = 12 for monthly-resolved ouput
+%   peakLoc     : the index for each peak in each cycle (peakLoc must be between 1 and ppcOut)
+%                 here this is the climatological warmest month
+%   troughLoc   : the index for each trough in each cycle (troughLoc must be between 1 and ppcOut)
+%                 here this is the climatological coolest month
+%   numPeriods  : the estimated number of complete periods in the input data
+%                 here this is the estimated number of years of coral
+%                 geochemical data (based on the # of growth bands or # of
+%                 annual cycles that appear in the raw geochemical data)
+
+% AGE MODEL OUTPUTS:
+%   dataOut     : the relative age modeled output [RelativeTime Data] stored as a Nx2 matrix
+%   criticalPts : the indices for the local minima/maxima (troughs/peaks) in a cycle
 %--------------------------------------------------------------------------
 % AGE MODEL ALGORITHM CITATION:
 % Lawman, A.E., Partin, J.W., Dee, S.G., Casadio, C.A., Di Nezio, P., 
@@ -12,15 +34,15 @@
 % coral and climate model estimates of changes in paleo-ENSO variability. 
 % Paleoceanography and Paleoclimatology, 35, e2019PA003836. 
 % doi: 10.1029/2019PA003836.
-%
+
 % CORAL DATA CITATION:
-% NOAA Archive Link: https://www.ncdc.noaa.gov/paleo-search/study/28590
-%
 % Lawman, A.E., Quinn, T.M., Partin, J.W., Thirumalai, K., Taylor, F.W., 
 % Wu, C.C., Yu, T.L., Gorman, M.K. & Shen, C.C. 2020. A Century of 
 % Reduced ENSO Variability During the Medieval Climate Anomaly. 
 % Paleoceanography and Paleoclimatology, 35, e2019PA003742. 
 % doi: 10.1029/2019PA003742.
+
+% NOAA Archive Link: https://www.ncdc.noaa.gov/paleo-search/study/28590
 %==========================================================================
 close all; clc;
 
