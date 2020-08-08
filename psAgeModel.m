@@ -59,7 +59,7 @@ function [ts, criticalPts] = psAgeModel(y, varargin)
 %
 %% Publication Info:
 % Lawman et al., (2020). Developing a coral proxy system model to compare
-% coral and climate model estimates of changes in paleo?ENSO variability,
+% coral and climate model estimates of changes in paleo-ENSO variability,
 % Paleoceanography and Paleoclimatology, doi: 10.1029/2019PA003836.
 
 %% parse input
