@@ -121,6 +121,28 @@ numYrs = 20;
 figure(4); clf; hold on;
 plotTimeSeries(exampleType, xIn, dataIn, criticalPts, dataOut)
 
+%----------------------------------------------------------
+%% EXAMPLE 5: constrain number of tie-points
+% (e.g., assign just peaks)
+%----------------------------------------------------------
+exampleType = 'specify ppcIn, ppcOut, peak assignment, estimated # of periods, and # tie points';
+
+% Note: This constraint is often not necessary for data with clear
+% cyclicity, but may be necessary for noisy data. 
+
+% For corals, the number of cycles (years) constraint can be estimated by 
+% counting the number of annual density bands that are visible in an x-ray 
+% image of the cross-sectional slabs.
+
+% estimated number of years in the input data
+numYrs = 20;
+
+[dataOut, criticalPts] =  psAgeModel(dataIn, 'ppcIn', ppcIn, 'ppcOut', ppcOut, 'peakLoc', peakLoc, 'numTiePoints', 1, 'numPeriods', numYrs);
+
+figure(5); clf; hold on;
+plotTimeSeries(exampleType, xIn, dataIn, criticalPts, dataOut)
+
+
 %% HELPER FUNCTIONS
 
 % plotting
