@@ -11,12 +11,16 @@ function [ts, criticalPts] = psAgeModel(y, varargin)
 %   monthly resolution, with the annual cycle emerging as a dominant signal 
 %   of constant frequency.
 %
-%   The age model algorithm identifies the local minima/maxima (critical 
+%   The age model identifies the local minima and maxima (critical 
 %   points) in the raw geochemical data (depth or sample number domain)
 %   and uses them as chronological tie points when interpolating the data 
 %   to the target temporal resolution (e.g., monthly = 12 points-per-year). 
 %   The critical points can be assigned a calendar month based on knowledge 
-%   of the climatology at the coral study site.
+%   of the climatology at the coral study site. 
+%   
+%   The number of chronological tie points per cycle determines whether the
+%   algorithm identifies both peaks and troughs (numTiePoints = 2), or 
+%   only peaks (numTiePoints = 1) in the input data.
 %
 %% Syntax:
 %
@@ -24,6 +28,7 @@ function [ts, criticalPts] = psAgeModel(y, varargin)
 %   [ts, criticalPts] = psAgeModel(..., 'ppcIn', pIn, 'ppcOut', pOut)
 %   [ts, criticalPts] = psAgeModel(..., 'numPeriods', n)
 %   [ts, criticalPts] = psAgeModel(..., 'peakLoc', p, 'troughLoc', t)
+%   [ts, criticalPts] = psAgeModel(..., 'numTiePoints', np)
 %
 %% Description:
 %
@@ -45,13 +50,21 @@ function [ts, criticalPts] = psAgeModel(y, varargin)
 % argument is often unecessary for data with a clear periodic signal, but 
 % may be needed for noisy data.
 %
-% [ts, criticalPts] = psAgeModel(..., 'peakLoc', p, 'troughLoc', t).
-% provides the location (index) for the peak and trough in each period.
+% [ts, criticalPts] = psAgeModel(..., 'peakLoc', p, 'troughLoc', t)
+% p, t provide the location (index) for the peak and trough in each period.
 % By default the age model will interpolate the data such that 
 % there is an equal number of data points between each peak and trough. For
 % monthly resolved coral data (ppcOut = 12) set peakLoc and peakTrough such
 % that they represent the calendar months that correspond to the 
 % climatological peaks and troughs (1 = January, 12 = December).
+%
+% [ts, criticalPts] = psAgeModel(..., 'numTiePoints', nt)
+% provides a constraint on the number of chronological tie points for the
+% coral age model. By default nt is 2 such that the age model algorithm 
+% identifies both peaks and troughs in the input data based on ppcIn, and 
+% then interpolates between the peaks and troughs to the target final
+% resolution ppcOut. If nt = 1, the algorithm only finds the peaks and 
+% then interpolates between the peaks.
 %
 %% Examples:
 % For examples, run 'psAgeModelDemo.m' available at: 
@@ -61,7 +74,6 @@ function [ts, criticalPts] = psAgeModel(y, varargin)
 % Lawman et al., (2020). Developing a coral proxy system model to compare
 % coral and climate model estimates of changes in paleo-ENSO variability,
 % Paleoceanography and Paleoclimatology, doi: 10.1029/2019PA003836.
-
 %% parse input
     p = inputParser;
 
@@ -71,6 +83,7 @@ function [ts, criticalPts] = psAgeModel(y, varargin)
     addParameter(p, 'numPeriods', 0, @isnumeric);
     addParameter(p, 'peakLoc', 0, @isnumeric);
     addParameter(p, 'troughLoc', 0, @isnumeric);
+    addParameter(p, 'numTiePoints', 2, @(x) isnumeric(x) && ((x == 1) || (x == 2)) );
 
     parse(p,y,varargin{:});
 
@@ -79,6 +92,7 @@ function [ts, criticalPts] = psAgeModel(y, varargin)
     peakLoc = p.Results.peakLoc;
     troughLoc = p.Results.troughLoc;
     numPeriods = p.Results.numPeriods;
+    numTiePoints = p.Results.numTiePoints;
     
     %% Initialize input
     
@@ -261,92 +275,157 @@ function [ts, criticalPts] = psAgeModel(y, varargin)
     selectedPeaksSubset.l = find(selectedPeaks);
     
     %% find troughs
-    [~,troughs.l,~,troughs.p] = findpeaks(-y);
-    selectedTroughs = zeros(size(troughs.l));
-    for i = 1:(length(selectedPeaksSubset.l) - 1)
-        % iterate through selected peaks. Use the cost function to find the
-        % most prominent trough in between peaks
-        tBetween = (troughs.l > selectedPeaksSubset.l(i)) & (troughs.l < selectedPeaksSubset.l(i+1));
-        [~, index] = max(troughs.p(tBetween));
-        selectedTroughs(troughs.l(find(tBetween,1)+index-1)) = true;
-    end
-    
-    % add beginning trough if missing
-    lpFilt = lowpass(-y, 2, ppcIn);
-    lp = lpFilt(1:(find(selectedTroughs,1))-ppcIn/2);
-    if length(lp) > 3
-        [lpy, lpLoc] = findpeaks(lp);
-        if ~isempty(lpy)
-            [~, i] = max(lpy);
-            [~, i] = min(abs(troughs.l - lpLoc(i)));
+    if numTiePoints == 2
 
-            if (find(selectedTroughs,1) - troughs.l(i)) > (ppcIn/2)
-                selectedTroughs(troughs.l(i)) = true;
-            end
-
+        [~,troughs.l,~,troughs.p] = findpeaks(-y);
+        selectedTroughs = zeros(size(troughs.l));
+        for i = 1:(length(selectedPeaksSubset.l) - 1)
+            % iterate through selected peaks. Use the cost function to find the
+            % most prominent trough in between peaks
+            tBetween = (troughs.l > selectedPeaksSubset.l(i)) & (troughs.l < selectedPeaksSubset.l(i+1));
+            [~, index] = max(troughs.p(tBetween));
+            selectedTroughs(troughs.l(find(tBetween,1)+index-1)) = true;
         end
-    end
     
-    % add end trough if missing
-    lastTrough = find(selectedTroughs, 1, 'last');
-    lp = lpFilt(lastTrough:length(y));
-    if length(lp) > 3
-        [lpy, lpLoc] = findpeaks(lp);
-        if ~isempty(lpy)
-            [~, i] = max(lpy);
-            [~, i] = min(abs(troughs.l - lpLoc(i) - lastTrough + 1));
-            
-            if (troughs.l(i) - find(selectedTroughs,1, 'last')) > (ppcIn/2 - 1)
-                selectedTroughs(troughs.l(i)) = true;
-            end
+        % add beginning trough if missing
+        lpFilt = lowpass(-y, 2, ppcIn);
+        lp = lpFilt(1:(find(selectedTroughs,1))-ppcIn/2);
+        if length(lp) > 3
+            [lpy, lpLoc] = findpeaks(lp);
+            if ~isempty(lpy)
+                [~, i] = max(lpy);
+                [~, i] = min(abs(troughs.l - lpLoc(i)));
 
+                if (find(selectedTroughs,1) - troughs.l(i)) > (ppcIn/2)
+                    selectedTroughs(troughs.l(i)) = true;
+                end
+
+            end
         end
-    end
+    
+        % add end trough if missing
+        lastTrough = find(selectedTroughs, 1, 'last');
+        lp = lpFilt(lastTrough:length(y));
+        if length(lp) > 3
+            [lpy, lpLoc] = findpeaks(lp);
+            if ~isempty(lpy)
+                [~, i] = max(lpy);
+                [~, i] = min(abs(troughs.l - lpLoc(i) - lastTrough + 1));
+
+                if (troughs.l(i) - find(selectedTroughs,1, 'last')) > (ppcIn/2 - 1)
+                    selectedTroughs(troughs.l(i)) = true;
+                end
+
+            end
+        end
     
     selectedTroughsSubset.l = find(selectedTroughs);
+        
+    end
     
 
     %% resample
     
     % critical points
-    criticalPts = sort([selectedPeaksSubset.l; selectedTroughsSubset.l]);
+    if numTiePoints == 2
+        criticalPts = sort([selectedPeaksSubset.l; selectedTroughsSubset.l]);
     
-    isPeak = y(criticalPts(1)) > y(criticalPts(2));
+        isPeak = y(criticalPts(1)) > y(criticalPts(2));
+        
+        % preallocate
+        intermediateX = zeros(ceil((length(criticalPts)-1)*ppcOut/2), 1);
+    else
+        criticalPts = selectedPeaksSubset.l;
+        
+        isPeak = true;
+        
+        % preallocate
+        intermediateX = zeros((length(criticalPts)-1)*ppcOut, 1);
+    end
     
-    
-    % preallocate
-    intermediateX = zeros(ceil((length(criticalPts)-1)*ppcOut/2), 1);
     currentX = 1;
 
     % create x values that are spaced between critical points
     for i = 1:(length(criticalPts)-1)
-        if isPeak
-            intermediateX(currentX:(currentX+p2t),1) = linspace(criticalPts(i),criticalPts(i+1), p2t + 1);
-            currentX = currentX + p2t;
+        if numTiePoints == 2
+            if isPeak
+                intermediateX(currentX:(currentX+p2t),1) = linspace(criticalPts(i),criticalPts(i+1), p2t + 1);
+                currentX = currentX + p2t;
+            else
+                intermediateX(currentX:(currentX+t2p),1) = linspace(criticalPts(i),criticalPts(i+1), t2p + 1);
+                currentX = currentX + t2p;
+            end
+            isPeak = ~isPeak;
         else
-            intermediateX(currentX:(currentX+t2p),1) = linspace(criticalPts(i),criticalPts(i+1), t2p + 1);
-            currentX = currentX + t2p;
-        end
-        isPeak = ~isPeak;
+            intermediateX(currentX:(currentX+ppcOut),1) = linspace(criticalPts(i),criticalPts(i+1), ppcOut + 1);
+            currentX = currentX + ppcOut;
+        end        
     end
 
     % add x values for endpoints
-    meanLengthp2t = 0;
-    meanLengtht2p = 0;
-    count = 0;
-    if y(criticalPts(1)) > y(criticalPts(2))
-        for i = 1:ppcOut:(length(intermediateX)-2*ppcOut)
-            count = count + 1;
-            meanLengthp2t = meanLengthp2t + mean(diff(intermediateX(i:(i+p2t),1)));
-            meanLengtht2p = meanLengtht2p + mean(diff(intermediateX((i+p2t):(i+ppcOut),1)));
+    if numTiePoints == 2
+    
+        meanLengthp2t = 0;
+        meanLengtht2p = 0;
+        count = 0;
+        if y(criticalPts(1)) > y(criticalPts(2))
+            for i = 1:ppcOut:(length(intermediateX)-2*ppcOut)
+                count = count + 1;
+                meanLengthp2t = meanLengthp2t + mean(diff(intermediateX(i:(i+p2t),1)));
+                meanLengtht2p = meanLengtht2p + mean(diff(intermediateX((i+p2t):(i+ppcOut),1)));
+            end
+
+            meanLengthp2t = meanLengthp2t/count;
+            meanLengtht2p = meanLengtht2p/count;
+
+            begPts = (1:meanLengtht2p:intermediateX(1,1))';
+            leftValue = length(begPts);
+
+            intermediateX = [begPts; intermediateX(:,1)];
+
+            nanPadding = [];
+            if leftValue < (peakLoc - 1)
+                nanPadding = nan(peakLoc-1-leftValue,1); 
+            elseif leftValue > (peakLoc-1)
+                nanPadding = nan(ppcOut+peakLoc-1-leftValue,1);
+            end
+
+            intermediateX = [nanPadding; intermediateX(:,1)];
+
+        else
+            for i = 1:ppcOut:(length(intermediateX)-2*ppcOut)
+                count = count + 1;
+                meanLengtht2p = meanLengtht2p + mean(diff(intermediateX(i:(i+t2p),1)));
+                meanLengthp2t = meanLengthp2t + mean(diff(intermediateX((i+t2p):(i+ppcOut),1)));
+            end
+
+            meanLengthp2t = meanLengthp2t/count;
+            meanLengtht2p = meanLengtht2p/count;
+
+            begPts = (1:meanLengthp2t:intermediateX(1,1))';
+            leftValue = length(begPts);
+
+            intermediateX = [begPts; intermediateX(:,1)];
+
+            nanPadding = [];
+            if leftValue < (troughLoc - 1)
+                nanPadding = nan(troughLoc-1-leftValue,1); 
+            elseif leftValue > (troughLoc-1)
+                nanPadding = nan(ppcOut+troughLoc-1-leftValue,1);
+            end
+
+            intermediateX = [nanPadding; intermediateX(:,1)];
+
         end
         
-        meanLengthp2t = meanLengthp2t/count;
-        meanLengtht2p = meanLengtht2p/count;
         
-        begPts = (1:meanLengtht2p:intermediateX(1,1))';
+    else
+        
+        meanLength = mean(diff(intermediateX(:,1)));
+        
+        begPts = (1:meanLength:intermediateX(1,1))';
         leftValue = length(begPts);
-        
+
         intermediateX = [begPts; intermediateX(:,1)];
         
         nanPadding = [];
@@ -355,43 +434,21 @@ function [ts, criticalPts] = psAgeModel(y, varargin)
         elseif leftValue > (peakLoc-1)
             nanPadding = nan(ppcOut+peakLoc-1-leftValue,1);
         end
-            
-        intermediateX = [nanPadding; intermediateX(:,1)];
-        
-    else
-        for i = 1:ppcOut:(length(intermediateX)-2*ppcOut)
-            count = count + 1;
-            meanLengtht2p = meanLengtht2p + mean(diff(intermediateX(i:(i+t2p),1)));
-            meanLengthp2t = meanLengthp2t + mean(diff(intermediateX((i+t2p):(i+ppcOut),1)));
-        end
-        
-        meanLengthp2t = meanLengthp2t/count;
-        meanLengtht2p = meanLengtht2p/count;
-        
-        begPts = (1:meanLengthp2t:intermediateX(1,1))';
-        leftValue = length(begPts);
-        
-        intermediateX = [begPts; intermediateX(:,1)];
-        
-        nanPadding = [];
-        if leftValue < (troughLoc - 1)
-            nanPadding = nan(troughLoc-1-leftValue,1); 
-        elseif leftValue > (troughLoc-1)
-            nanPadding = nan(ppcOut+troughLoc-1-leftValue,1);
-        end
-            
+
         intermediateX = [nanPadding; intermediateX(:,1)];
         
     end
-    
+        
     while intermediateX(end) == 0
         intermediateX = intermediateX(1:(end-1));
     end
     
-    if y(criticalPts(end)) > y(criticalPts(end-1))
-        intermediateX = [intermediateX(:,1); (intermediateX(end,1):meanLengthp2t:length(y))'];
-    else
-        intermediateX = [intermediateX(:,1); (intermediateX(end,1):meanLengtht2p:length(y))'];
+    if numTiePoints == 2
+        if y(criticalPts(end)) > y(criticalPts(end-1))
+            intermediateX = [intermediateX(:,1); (intermediateX(end,1):meanLengthp2t:length(y))'];
+        else
+            intermediateX = [intermediateX(:,1); (intermediateX(end,1):meanLengtht2p:length(y))'];
+        end
     end
     
     % linearly interpolate data
